@@ -5,7 +5,18 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 
 def root_view(request):
-    return JsonResponse({'message': 'Inventory API', 'status': 'running'})
+    return JsonResponse({
+        'message': 'Inventory Management System API',
+        'status': 'running',
+        'endpoints': {
+            'admin': '/admin/',
+            'api': '/api/',
+            'auth': '/api/auth/',
+            'products': '/api/products/',
+            'inventory': '/api/inventory/',
+            'stock': '/api/stock/',
+        }
+    })
 
 urlpatterns = [
     path('', root_view),
