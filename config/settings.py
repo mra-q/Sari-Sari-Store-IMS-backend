@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
+import dj_database_url
 import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +30,8 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.inventory',
     'apps.stock',
+    "cloudinary_storage",
+    "cloudinary",
 ]
 
 MIDDLEWARE = [
@@ -61,16 +64,31 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION  = "backend.asgi.application"
+
+
+_DB_URL = os.environ.get("DATABASE_URL")
+if not _DB_URL:
+    _db_user = os.environ.get("DB_USER")
+    _db_password = os.environ.get("DB_PASSWORD")
+    _db_host = os.environ.get("DB_HOST", "localhost")
+    _db_port = os.environ.get("DB_PORT", "5432")
+    _db_name = os.environ.get("DB_NAME")
+    if all([_db_user, _db_password, _db_host, _db_port, _db_name]):
+        _DB_URL = f"postgresql://{_db_user}:{_db_password}@{_db_host}:{_db_port}/{_db_name}"
+    elif not DEBUG:
+        raise RuntimeError("DATABASE_URL or DB_USER/DB_PASSWORD/DB_HOST/DB_PORT/DB_NAME must be set in production.")
+
+if not _DB_URL and not DEBUG:
+    raise RuntimeError("DATABASE_URL or DB_* variables must be set in production.")
+
+_SQLITE_FALLBACK = os.environ.get("SQLITE_URL", "sqlite:///" + str(BASE_DIR / "db.sqlite3"))
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-    }
+    "default": dj_database_url.config(
+        default=_DB_URL if _DB_URL else _SQLITE_FALLBACK,
+        conn_max_age=600,
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -85,9 +103,30 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# ── Static / Media ────────────────────────────────────────────────────────────
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
+
+# ── Cloudinary ────────────────────────────────────────────────────────────────
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME":    os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY":       os.environ.get("CLOUDINARY_API_KEY"),
+    "API_SECRET":    os.environ.get("CLOUDINARY_API_SECRET"),
+    "RESOURCE_TYPE": "auto",  # allows images, PDFs, and raw files to each go to their upload_to folder
+}
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
