@@ -1,18 +1,14 @@
 from pathlib import Path
 from datetime import timedelta
-from decouple import config
 import dj_database_url
 import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
-try:
-    DEBUG = config('DEBUG', default='True', cast=bool)
-except ValueError:
-    DEBUG = True
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0,192.168.55.112,192.168.254.155').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,192.168.55.112,192.168.254.155').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
