@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.utils.html import format_html
 
 from .models import User
 
@@ -40,7 +41,9 @@ class UserCreationForm(forms.ModelForm):
 
 class UserChangeForm(forms.ModelForm):
     password = ReadOnlyPasswordHashField(
-        help_text='Raw passwords are not stored. Use the password change form to set a new password.'
+        help_text=format_html(
+            'Raw passwords are not stored. You can change the password using <a href="../password/">this form</a>.'
+        )
     )
 
     class Meta:
