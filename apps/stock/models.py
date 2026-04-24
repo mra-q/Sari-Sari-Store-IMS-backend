@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from apps.products.models import Product
-import uuid
 
 User = get_user_model()
 
@@ -24,7 +23,6 @@ class StockMovement(models.Model):
         ('misc', 'Miscellaneous'),
     ]
     
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='movements')
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
     quantity = models.IntegerField()
@@ -52,7 +50,6 @@ class CycleCount(models.Model):
         ('completed', 'Completed'),
     ]
     
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='cycle_counts')
     expected_quantity = models.IntegerField()
     actual_quantity = models.IntegerField(null=True, blank=True)
@@ -81,7 +78,6 @@ class RestockRequest(models.Model):
         ('completed', 'Completed'),
     ]
     
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='restock_requests')
     requested_quantity = models.IntegerField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
