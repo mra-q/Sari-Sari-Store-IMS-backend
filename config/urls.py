@@ -16,7 +16,7 @@ def root_view(request):
             'inventory': '/api/inventory/',
             'stock': '/api/stock/',
         }
-    })
+    }, json_dumps_params={'indent': 2})
 
 urlpatterns = [
     path('', root_view),
@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/products/', include('apps.products.urls')),
     path('api/inventory/', include('apps.inventory.urls')),
     path('api/stock/', include('apps.stock.urls')),
+    path('api/sync/', include('apps.sync.urls')),
 ]
 
 if settings.DEBUG:

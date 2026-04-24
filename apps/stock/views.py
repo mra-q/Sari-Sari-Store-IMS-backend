@@ -5,7 +5,7 @@ from django.utils import timezone
 from .models import StockMovement, CycleCount, RestockRequest
 from .serializers import StockMovementSerializer, CycleCountSerializer, RestockRequestSerializer
 from apps.inventory.models import Inventory
-from .analytics import get_sales_statistics, get_product_statistics
+from .insights import get_stock_out_statistics, get_product_statistics
 
 class StockMovementViewSet(viewsets.ModelViewSet):
     queryset = StockMovement.objects.select_related('product', 'performed_by').all()
@@ -59,16 +59,16 @@ class RestockRequestViewSet(viewsets.ModelViewSet):
 
 
 @api_view(['GET'])
-def analytics_view(request):
+def stock_insights_view(request):
     period = request.query_params.get('period', 'monthly')
     
     if period not in ['weekly', 'monthly', 'annual']:
         return Response({'error': 'Invalid period'}, status=status.HTTP_400_BAD_REQUEST)
     
-    sales_data = get_sales_statistics(period)
+    stock_out_data = get_stock_out_statistics(period)
     product_data = get_product_statistics(period)
     
     return Response({
-        'sales': sales_data,
+        'stockOut': stock_out_data,
         'products': product_data
     })
