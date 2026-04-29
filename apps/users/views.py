@@ -5,12 +5,16 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.conf import settings
+from django.core.cache import cache
+import secrets
 from .serializers import (
     SignupSerializer,
     LoginSerializer,
     StaffInviteSerializer,
     ChangePasswordSerializer,
     UserSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
 )
 from .models import User
 
@@ -219,3 +223,49 @@ class StaffToggleActiveView(APIView):
             return Response(UserSerializer(staff).data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'error': 'Staff member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        email = serializer.validated_data['email']
+        reset_code = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+        
+        cache.set(f'reset_code_{email}', reset_code, timeout=600)
+        
+        return Response({
+            'message': 'Password reset code sent',
+            'reset_code': reset_code
+        }, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        email = serializer.validated_data['email']
+        reset_code = serializer.validated_data['reset_code']
+        new_password = serializer.validated_data['new_password']
+        
+        cached_code = cache.get(f'reset_code_{email}')
+        if not cached_code or cached_code != reset_code:
+            return Response({'error': 'Invalid or expired reset code'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+            cache.delete(f'reset_code_{email}')
+            
+            return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)

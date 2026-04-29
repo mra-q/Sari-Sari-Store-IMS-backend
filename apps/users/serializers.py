@@ -104,6 +104,21 @@ class ChangePasswordSerializer(serializers.Serializer):
         return attrs
 
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("No account found with this email")
+        return value
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    reset_code = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=6, write_only=True)
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

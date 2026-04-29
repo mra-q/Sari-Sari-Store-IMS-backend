@@ -15,9 +15,9 @@ class StockMovementViewSet(viewsets.ModelViewSet):
         movement = serializer.save(performed_by=self.request.user)
         inventory, _ = Inventory.objects.get_or_create(product=movement.product)
         
-        if movement.movement_type == 'in':
+        if movement.movement_type in ['in', 'stock_in']:
             inventory.quantity += movement.quantity
-        elif movement.movement_type in ['out', 'adjustment']:
+        elif movement.movement_type in ['out', 'stock_out', 'adjustment']:
             inventory.quantity -= movement.quantity
         
         inventory.save()
