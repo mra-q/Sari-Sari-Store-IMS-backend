@@ -9,18 +9,27 @@ def get_stock_out_statistics(period='monthly'):
     """Get stock-out movement statistics based on period (weekly, monthly, annual)"""
     now = timezone.now()
     
+    def format_weekly(date):
+        return date.strftime('%a')
+    
+    def format_annual(date):
+        return date.strftime('%b %Y')
+    
+    def format_monthly(date):
+        return date.strftime('%b')
+    
     if period == 'weekly':
         periods = 7
         delta = timedelta(days=1)
-        date_format = lambda d: d.strftime('%a')
+        date_format = format_weekly
     elif period == 'annual':
         periods = 12
         delta = timedelta(days=30)
-        date_format = lambda d: d.strftime('%b %Y')
+        date_format = format_annual
     else:  # monthly (default)
         periods = 6
         delta = timedelta(days=30)
-        date_format = lambda d: d.strftime('%b')
+        date_format = format_monthly
     
     data = []
     for i in range(periods):
@@ -77,9 +86,12 @@ def get_product_statistics(period='monthly'):
             count=Count('id')
         ).order_by('-count')[:6]
         
-        data = [{
-            'category': item['category__name'],
-            'value': item['count']
-        } for item in category_counts]
+        # Build data list from category counts
+        data = []
+        for item in category_counts:
+            data.append({
+                'category': item['category__name'],
+                'value': item['count']
+            })
     
     return data

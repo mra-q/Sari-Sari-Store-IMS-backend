@@ -7,6 +7,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from django.conf import settings
 from django.core.cache import cache
 import secrets
+import os
 from .serializers import (
     SignupSerializer,
     LoginSerializer,
@@ -35,20 +36,23 @@ class SignupView(APIView):
                 'refresh': str(refresh)
             }, status=status.HTTP_201_CREATED)
             
+            # Use secure cookies in production (HTTPS), allow insecure in development
+            is_secure = not settings.DEBUG and os.environ.get('DJANGO_ENV') == 'production'
+            
             response.set_cookie(
                 key='access_token',
                 value=str(refresh.access_token),
                 httponly=True,
-                secure=False,
-                samesite='Lax',
+                secure=is_secure,
+                samesite='Strict' if is_secure else 'Lax',
                 max_age=3600
             )
             response.set_cookie(
                 key='refresh_token',
                 value=str(refresh),
                 httponly=True,
-                secure=False,
-                samesite='Lax',
+                secure=is_secure,
+                samesite='Strict' if is_secure else 'Lax',
                 max_age=86400
             )
             
@@ -73,20 +77,23 @@ class LoginView(APIView):
                 'refresh': str(refresh)
             }, status=status.HTTP_200_OK)
             
+            # Use secure cookies in production (HTTPS), allow insecure in development
+            is_secure = not settings.DEBUG and os.environ.get('DJANGO_ENV') == 'production'
+            
             response.set_cookie(
                 key='access_token',
                 value=str(refresh.access_token),
                 httponly=True,
-                secure=False,
-                samesite='Lax',
+                secure=is_secure,
+                samesite='Strict' if is_secure else 'Lax',
                 max_age=3600
             )
             response.set_cookie(
                 key='refresh_token',
                 value=str(refresh),
                 httponly=True,
-                secure=False,
-                samesite='Lax',
+                secure=is_secure,
+                samesite='Strict' if is_secure else 'Lax',
                 max_age=86400
             )
             
@@ -125,6 +132,9 @@ class RefreshTokenView(APIView):
             refresh = RefreshToken(refresh_token)
             access_token = str(refresh.access_token)
             
+            # Use secure cookies in production (HTTPS), allow insecure in development
+            is_secure = not settings.DEBUG and os.environ.get('DJANGO_ENV') == 'production'
+            
             response = Response({
                 'message': 'Token refreshed successfully',
                 'access': access_token
@@ -133,8 +143,8 @@ class RefreshTokenView(APIView):
                 key='access_token',
                 value=access_token,
                 httponly=True,
-                secure=False,
-                samesite='Lax',
+                secure=is_secure,
+                samesite='Strict' if is_secure else 'Lax',
                 max_age=3600
             )
             
@@ -236,12 +246,16 @@ class ForgotPasswordView(APIView):
         email = serializer.validated_data['email']
         reset_code = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
         
+        # Store reset code in cache (10 minutes expiry)
         cache.set(f'reset_code_{email}', reset_code, timeout=600)
         
-        return Response({
-            'message': 'Password reset code sent',
-            'reset_code': reset_code
-        }, status=status.HTTP_200_OK)
+        # TODO: In production, send reset_code via email instead of returning it in response
+        # For development/testing, we return it directly
+        response_data = {'message': 'Password reset code sent'}
+        if settings.DEBUG:
+            response_data['reset_code'] = reset_code  # Only expose in development
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):

@@ -15,10 +15,11 @@ class StockMovementViewSet(viewsets.ModelViewSet):
         movement = serializer.save(performed_by=self.request.user)
         inventory, _ = Inventory.objects.get_or_create(product=movement.product)
         
+        # Normalize movement types
         if movement.movement_type in ['in', 'stock_in']:
             inventory.quantity += movement.quantity
         elif movement.movement_type in ['out', 'stock_out', 'adjustment']:
-            inventory.quantity -= movement.quantity
+            inventory.quantity = max(0, inventory.quantity - movement.quantity)
         
         inventory.save()
 
@@ -61,12 +62,20 @@ class RestockRequestViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 def stock_insights_view(request):
     period = request.query_params.get('period', 'monthly')
+    year = request.query_params.get('year')
+    month = request.query_params.get('month')
+    week = request.query_params.get('week')
     
     if period not in ['weekly', 'monthly', 'annual']:
         return Response({'error': 'Invalid period'}, status=status.HTTP_400_BAD_REQUEST)
     
-    stock_out_data = get_stock_out_statistics(period)
-    product_data = get_product_statistics(period)
+    # Convert to integers if provided
+    year = int(year) if year else None
+    month = int(month) if month else None
+    week = int(week) if week else None
+    
+    stock_out_data = get_stock_out_statistics(period, year, month, week)
+    product_data = get_product_statistics(period, year, month, week)
     
     return Response({
         'stockOut': stock_out_data,

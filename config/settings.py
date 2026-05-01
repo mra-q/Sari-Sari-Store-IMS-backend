@@ -76,7 +76,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-ASGI_APPLICATION  = "backend.asgi.application"
 
 
 _DB_URL = os.environ.get("DATABASE_URL")

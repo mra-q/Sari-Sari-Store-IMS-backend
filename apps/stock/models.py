@@ -6,7 +6,9 @@ User = get_user_model()
 
 class StockMovement(models.Model):
     MOVEMENT_TYPES = [
+        ('in', 'Stock In'),
         ('stock_in', 'Stock In'),
+        ('out', 'Stock Out'),
         ('stock_out', 'Stock Out'),
         ('adjustment', 'Adjustment'),
     ]

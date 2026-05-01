@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import StockMovement, CycleCount, RestockRequest
+from apps.products.models import Product
 
 
 def build_user_display_name(user):
@@ -18,6 +19,16 @@ class StockMovementSerializer(serializers.ModelSerializer):
     def get_performed_by_name(self, obj):
         return build_user_display_name(obj.performed_by)
     
+    def validate_product(self, value):
+        if not value or not Product.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Product does not exist.")
+        return value
+    
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than zero.")
+        return value
+    
     class Meta:
         model = StockMovement
         fields = '__all__'
@@ -29,6 +40,16 @@ class CycleCountSerializer(serializers.ModelSerializer):
     def get_counted_by_name(self, obj):
         return build_user_display_name(obj.counted_by)
     
+    def validate_product(self, value):
+        if not value or not Product.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Product does not exist.")
+        return value
+    
+    def validate_expected_quantity(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Expected quantity cannot be negative.")
+        return value
+    
     class Meta:
         model = CycleCount
         fields = '__all__'
@@ -39,6 +60,16 @@ class RestockRequestSerializer(serializers.ModelSerializer):
 
     def get_requested_by_name(self, obj):
         return build_user_display_name(obj.requested_by)
+    
+    def validate_product(self, value):
+        if not value or not Product.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Product does not exist.")
+        return value
+    
+    def validate_requested_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Requested quantity must be greater than zero.")
+        return value
     
     class Meta:
         model = RestockRequest
